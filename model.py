@@ -10,7 +10,7 @@ class User(BaseModel):
   username: Indexed(str, unique=True)
   email: Indexed(EmailStr, unique=True)
   password: str
-  proffilePic: str
+  profilePic: str
   address: str
 
   class Config:
@@ -40,3 +40,19 @@ class User(BaseModel):
     if isinstance(other, User):
         return self.email == other.email
     return False
+  
+class UserIn(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
+    email: EmailStr
+    password: str
+
+    class Config:
+      allow_population_by_field_name = True
+      arbitrary_types_allowed = True
+      json_encoders = {ObjectId: str}
+      schema_extra = {
+          "example": {
+              "email": "user@example.com",
+              "password": "123",
+          }
+      }
