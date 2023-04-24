@@ -56,3 +56,24 @@ class UserIn(BaseModel):
               "password": "123",
           }
       }
+
+class Question(BaseModel):
+  id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
+  owner_id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
+  date: str
+  query: str
+  response: str
+  type: str
+
+  class Config:
+    allow_population_by_field_name = True
+    arbitrary_types_allowed = True
+    json_encoders = {ObjectId: str}
+    schema_extra = {
+        "example": {
+            "date": "4/18/2023, 6:18:38 PM",
+            "query": "Number of pushups",
+            "response": "40",
+            "type": "number"
+        }
+    }
