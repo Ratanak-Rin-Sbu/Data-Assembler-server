@@ -40,6 +40,26 @@ class User(BaseModel):
         return self.email == other.email
     return False
   
+class UpdateUserModel(BaseModel):
+  id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
+  username: Optional[str]
+  email: Optional[str]
+  profilePic: Optional[str]
+  address: Optional[str]
+
+  class Config:
+      allow_population_by_field_name = True
+      arbitrary_types_allowed = True
+      json_encoders = {ObjectId: str}
+      schema_extra = {
+          "example": {
+              "username": "User",
+              "email": "user@gmail.com",
+              "profilePic": "thisIsThePicturePathLink",
+              "address": "Sensok, PP, Cambodia"
+          }
+      }
+  
 class UserIn(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
     email: EmailStr

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from model import User, UserIn, Question, UpdateQuestionModel
+from model import User, UserIn, Question, UpdateQuestionModel, UpdateUserModel
 from typing import Optional
 from auth.config import settings
 from auth.security import get_password, verify_password, create_access_token
@@ -102,6 +102,36 @@ async def login(user: UserIn):
         },
     }
 
+# UPDATE A USER
+async def update_user(id: PyObjectId, user: UpdateUserModel):
+    if user.username != None:
+        existed_username = await userCollection.find_one({'username': {'$eq': user.username}})
+        existed_email = await userCollection.find_one({'email': {'$eq': user.email}})
+        if existed_username or existed_email:
+            raise HTTPException(403, "Username or email already exists")
+        else:
+            await userCollection.update_one({"id": id}, {"$set": {"username": user.username}})
+    if user.email != None:
+        existed_username = await userCollection.find_one({'username': {'$eq': user.username}})
+        existed_email = await userCollection.find_one({'email': {'$eq': user.email}})
+        if existed_username or existed_email:
+            raise HTTPException(403, "Username or email already exists")
+        else:
+            await userCollection.update_one({"id": id}, {"$set": {"email": user.email}})
+    if user.profilePic != None:
+        await userCollection.update_one({"id": id}, {"$set": {"profilePic": user.profilePic}})
+    if user.address != None:
+        await userCollection.update_one({"id": id}, {"$set": {"address": user.address}})
+    document = await userCollection.find_one({"id": id})
+    return document
+
+@app.put("/api/user/{id}", response_model=User)
+async def put_user(id: PyObjectId, user: UpdateUserModel):
+    response = await update_user(id, user)
+    if response:
+        return response
+    raise HTTPException(404, f"There is no user with the id {id}")
+
 # QUESTION
 # GET ONE QUESTION
 async def fetch_one_question(id, userId):
@@ -146,11 +176,6 @@ async def post_qustion(question: Question, userId: PyObjectId):
                 return response
             raise HTTPException(400, "Something went wrong")
     raise HTTPException(404, f"There is no user with the id {userId}")
-    
-    # response = await create_question(question.dict(), userId)
-    # if response:
-    #     return response
-    # raise HTTPException(400, "Something went wrong")
 
 # UPDATE A QUESTION
 async def update_question(id: PyObjectId, question: UpdateQuestionModel, userId: PyObjectId):
