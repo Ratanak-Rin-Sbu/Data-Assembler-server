@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field, EmailStr
 from PyObjectId import PyObjectId
 from typing import Optional
 from beanie import Indexed
-from datetime import datetime
 
 class User(BaseModel):
   id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
@@ -59,21 +58,41 @@ class UserIn(BaseModel):
 
 class Question(BaseModel):
   id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
-  owner_id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
   date: str
   query: str
   response: str
-  type: str
+  question_type: str
+  owner_id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
 
   class Config:
-    allow_population_by_field_name = True
-    arbitrary_types_allowed = True
-    json_encoders = {ObjectId: str}
-    schema_extra = {
-        "example": {
-            "date": "4/18/2023, 6:18:38 PM",
-            "query": "Number of pushups",
-            "response": "40",
-            "type": "number"
-        }
-    }
+      allow_population_by_field_name = True
+      arbitrary_types_allowed = True
+      json_encoders = {ObjectId: str}
+      schema_extra = {
+          "example": {
+              "date": "3/06/2023, 8:04:23 AM",
+              "query": "Number of pushups",
+              "response": "40",
+              "question_type": "number"
+          }
+      }
+
+class UpdateQuestionModel(BaseModel):
+  id: PyObjectId = Field(default_factory=PyObjectId, alias="id")
+  date: Optional[str]
+  query: Optional[str]
+  response: Optional[str]
+  question_type: Optional[str]
+
+  class Config:
+      allow_population_by_field_name = True
+      arbitrary_types_allowed = True
+      json_encoders = {ObjectId: str}
+      schema_extra = {
+          "example": {
+              "date": "3/06/2023, 8:04:23 AM",
+              "query": "Number of pushups",
+              "response": "40",
+              "question_type": "number"
+          }
+      }

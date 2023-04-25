@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from model import User, UserIn
+from model import User, UserIn, Question, UpdateQuestionModel
 from typing import Optional
 from auth.config import settings
 from auth.security import get_password, verify_password, create_access_token
+from PyObjectId import PyObjectId
 
 # DB
 import motor.motor_asyncio
@@ -23,6 +24,9 @@ client.get_io_loop = asyncio.get_running_loop
 # User DB
 userDB = client.UserList
 userCollection = userDB.user
+# Question DB
+questionDB = client.QuestionList
+questionCollection = questionDB.question
 
 # CORS SETUP
 origins = [
@@ -97,3 +101,85 @@ async def login(user: UserIn):
             "address": user["address"]
         },
     }
+
+# QUESTION
+# GET ONE QUESTION
+async def fetch_one_question(id, userId):
+    document = await questionCollection.find_one({"id": id, "owner_id": userId})
+    return document
+
+@app.get("/api/{userId}/question/{id}", response_model=Question)
+async def get_question_by_id(id: PyObjectId, userId: PyObjectId):
+    response = await fetch_one_question(id, userId)
+    if response:
+        return response
+    raise HTTPException(404, f"There is no question with the id {id}")
+
+# GET ALL questions
+async def fetch_all_questions(userId):
+    questions = []
+    cursor = questionCollection.find({})
+    async for document in cursor:
+        if document["owner_id"] == userId:
+            questions.append(Question(**document))
+    return questions
+
+@app.get("/api/{userId}/questions")
+async def get_questions(userId: PyObjectId):
+    response = await fetch_all_questions(userId)
+    return response
+
+# CREATE A Question
+async def create_question(question, userId):
+    document = question
+    document["owner_id"] = userId
+    result = await questionCollection.insert_one(document)
+    return document
+
+@app.post("/api/{userId}/question", response_model=Question)
+async def post_qustion(question: Question, userId: PyObjectId):
+    cursor = questionCollection.find({})
+    async for document in cursor:
+        if document["owner_id"] == userId:
+            response = await create_question(question.dict(), userId)
+            if response:
+                return response
+            raise HTTPException(400, "Something went wrong")
+    raise HTTPException(404, f"There is no user with the id {userId}")
+    
+    # response = await create_question(question.dict(), userId)
+    # if response:
+    #     return response
+    # raise HTTPException(400, "Something went wrong")
+
+# UPDATE A QUESTION
+async def update_question(id: PyObjectId, question: UpdateQuestionModel, userId: PyObjectId):
+    if question.date != None:
+        await questionCollection.update_one({"id": id}, {"$set": {"date": question.date}})
+    if question.query != None:
+        await questionCollection.update_one({"id": id}, {"$set": {"query": question.query}})
+    if question.response != None:
+        await questionCollection.update_one({"id": id}, {"$set": {"response": question.response}})
+    if question.question_type != None:
+        await questionCollection.update_one({"id": id}, {"$set": {"question_type": question.question_type}})
+    document = await questionCollection.find_one({"id": id, "owner_id": userId})
+    return document
+
+@app.put("/api/{userId}/question/{id}", response_model=Question)
+async def put_question(id: PyObjectId, question: UpdateQuestionModel, userId: PyObjectId):
+    response = await update_question(id, question, userId)
+    if response:
+        return response
+    raise HTTPException(404, f"There is no question with the id {id}")
+
+# DELETE A QUESTION
+async def remove_question(id: PyObjectId, userId: PyObjectId):
+    await questionCollection.delete_one({"id": id, "owner_id": userId})
+    return True
+
+@app.delete("/api/{userId}/question/{id}")
+async def delete_question(id: PyObjectId, userId: PyObjectId):
+    response = await remove_question(id, userId)
+    if response:
+        return "Successfully deleted question"
+    raise HTTPException(404, f"There is no question with the id {id}")
